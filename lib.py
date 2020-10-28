@@ -1,5 +1,4 @@
 import struct
-import numpy
 from collections import namedtuple
 
 # ===============================================================
@@ -11,24 +10,18 @@ from collections import namedtuple
 # Vertex2Type = numpy.dtype([('x', 'f4'), ('y', 'f4')])
 
 class V3(object):
-  def __init__(self, x, y = None, z = None):
-    if (type(x) == numpy.matrix):
-      self.x, self.y, self.z = x.tolist()[0]
-    else:
-      self.x = x
-      self.y = y
-      self.z = z
+  def __init__(self, x, y, z):
+    self.x = x
+    self.y = y
+    self.z = z
 
   def __repr__(self):
     return "V3(%s, %s, %s)" % (self.x, self.y, self.z)
 
 class V2(object):
-  def __init__(self, x, y = None):
-    if (type(x) == numpy.matrix):
-      self.x, self.y = x.tolist()[0]
-    else:
-      self.x = x
-      self.y = y
+  def __init__(self, x, y):
+    self.x = x
+    self.y = y
 
   def __repr__(self):
     return "V2(%s, %s)" % (self.x, self.y)
@@ -94,6 +87,11 @@ def norm(v0):
 
   return V3(v0.x/v0length, v0.y/v0length, v0.z/v0length)
 
+def reflect(I, N):
+  Lm = mul(I, -1)
+  n = mul(N, 2 * dot(Lm, N))
+  return norm(sub(Lm, n))
+
 def bbox(*vertices):
   """
     Input: n size 2 vectors
@@ -126,16 +124,6 @@ def barycentric(A, B, C, P):
     bary.y / bary.z,
     bary.x / bary.z
   )
-
-
-def allbarycentric(A, B, C, bbox_min, bbox_max):
-  barytransform = numpy.linalg.inv([[A.x, B.x, C.x], [A.y,B.y,C.y], [1, 1, 1]])
-  grid = numpy.mgrid[bbox_min.x:bbox_max.x, bbox_min.y:bbox_max.y].reshape(2,-1)
-  grid = numpy.vstack((grid, numpy.ones((1, grid.shape[1]))))
-  barycoords = numpy.dot(barytransform, grid)
-  # barycoords = barycoords[:,numpy.all(barycoords>=0, axis=0)]
-  barycoords = numpy.transpose(barycoords)
-  return barycoords
 
 
 # ===============================================================
@@ -171,6 +159,7 @@ def dword(d):
   """
   return struct.pack('=l', d)
 
+
 class color(object):
   def __init__(self, r, g, b):
     self.r = r
@@ -200,9 +189,6 @@ class color(object):
     return bytes([self.b, self.g, self.r])
 
   __rmul__ = __mul__
-
-def reflect(I, N):
-  return norm(sub(I, mul(N, 2 * dot(I, N))))
 
 # ===============================================================
 # BMP
@@ -234,5 +220,5 @@ def writebmp(filename, width, height, pixels):
   # Pixel data (width x height x 3 pixels)
   for x in range(height):
     for y in range(width):
-      f.write(pixels[x][y])
+      f.write(pixels[x][y].toBytes())
   f.close()
