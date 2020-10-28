@@ -201,6 +201,8 @@ class color(object):
 
   __rmul__ = __mul__
 
+def reflect(I, N):
+  return norm(sub(I, mul(N, 2 * dot(I, N))))
 
 # ===============================================================
 # BMP

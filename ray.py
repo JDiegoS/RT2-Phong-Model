@@ -84,15 +84,30 @@ class Raytracer(object):
             return self.clearC
 
         light_dir = norm(sub(self.light.position, intersect.point))
-        intensity = self.light.intensity * max(0, dot(light_dir, intersect.normal))
+        light_distance = length(sub(self.light.position, intersect.point))
 
+        #Offset para que no choque con si mismo
+        offset_normal = mul(intersect.normal, 1.1)
+
+        if dot(light_dir, intersect.normal) < 0:
+            shadow_orig = sub(intersect.point, offset_normal)
+        else:
+            shadow_orig = sum(intersect.point, offset_normal)
+        
+        shadow_material, shadow_intersect = self.scene_intersect(shadow_orig, light_dir)
+        shadow_intensity = 0
+
+        if shadow_intersect and length(sub(shadow_intersect.point, shadow_orig)) < light_distance:
+            #esta en la sombra
+            shadow_intensity = 0.9
+
+        intensity = self.light.intensity * max(0, dot(light_dir, intersect.normal)) * (1 - shadow_intensity)
+        
         reflection = reflect(light_dir, intersect.normal)
-        specular_intensity = self.light.intensity * (
-        max(0, -dot(reflection, direction))**material.spec
-        )
+        specular_intensity = self.light.intensity * (max(0, dot(reflection, direction))**impacted_material.spec)
 
-        diffuse = material.diffuse * intensity * material.albedo[0]
-        specular = color(255, 255, 255) * specular_intensity * material.albedo[1]
+        diffuse = impacted_material.diffuse * intensity * impacted_material.albedo[0]
+        specular = color(255, 255, 255) * specular_intensity * impacted_material.albedo[1]
         return diffuse + specular
 
 
@@ -107,26 +122,18 @@ class Raytracer(object):
 
           direction = norm(V3(i, j, -1))
           self.framebuffer[y][x] = self.cast_ray(V3(0, 0, 0), direction)
+
 r = Raytracer(1000, 1000)
+
+r.light = Light(
+    color = color(255, 255, 255),
+    position = V3(-20, 20, 20),
+    intensity = 1.5
+)
 r.scene = [
     #Face
-    Sphere(V3(0, -3, -10), 0.2, orange),
-    Sphere(V3(0.5, -3.5, -10), 0.1, black),
-    Sphere(V3(-0.5, -3.5, -10), 0.1, black),
-    #Smile
-    Sphere(V3(-0.5, -2.5, -10), 0.1, black),
-    Sphere(V3(-0.2, -2.4, -10), 0.1, black),
-    Sphere(V3(0.2, -2.4, -10), 0.1, black),
-    Sphere(V3(0.5, -2.5, -10), 0.1, black),
-    #Buttons
-    Sphere(V3(0, 0, -10), 0.3, black),
-    Sphere(V3(0, 1.5, -10), 0.3, black),
-    Sphere(V3(0, 3, -10), 0.3, black),
-    #Body
-    Sphere(V3(0, 3, -10), 2.5, white),
-    Sphere(V3(0, 0, -10), 2, white),
-    Sphere(V3(0, -3, -10), 1.5, white)
-
-    
+    Sphere(V3(0, -1.5, -10), 0.2, orange),
+    Sphere(V3(1, -1, -12), 0.1, ivory),
+    Sphere(V3(-2, 2, -10), 0.1, black),
 ]
 r.display()
